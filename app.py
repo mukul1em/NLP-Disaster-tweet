@@ -15,7 +15,7 @@ from torchtext.legacy import data
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 import pandas as pd
-from torchtext.vocab import Vectors
+# from torchtext.vocab import Vectors
 
 
 
@@ -59,19 +59,19 @@ def sentence_prediction(sentence):
 
 
 
-nlp = spacy.load('en_core_web_sm')
-def bilstm(model, sentence):
-  tokenized = [tok.text for tok in nlp.tokenizer(sentence)]
-  indexed = [TEXT.vocab.stoi[t] for t in tokenized]
-  length = [len(indexed)]
-  tensor = torch.LongTensor(indexed).to(device)
-  tensor = tensor.unsqueeze(1).T
-  length_tensor = torch.LongTensor(length)
-  prediction = model(tensor, length_tensor).squeeze(1)
+# # nlp = spacy.load('en_core_web_sm')
+# def bilstm(model, sentence):
+#   tokenized = [tok.text for tok in nlp.tokenizer(sentence)]
+#   indexed = [TEXT.vocab.stoi[t] for t in tokenized]
+#   length = [len(indexed)]
+#   tensor = torch.LongTensor(indexed).to(device)
+#   tensor = tensor.unsqueeze(1).T
+#   length_tensor = torch.LongTensor(length)
+#   prediction = model(tensor, length_tensor).squeeze(1)
 
-  rounded_preds = torch.round(torch.sigmoid(prediction))
-  predict_class = rounded_preds.tolist()[0]
-  return predict_class
+#   rounded_preds = torch.round(torch.sigmoid(prediction))
+#   predict_class = rounded_preds.tolist()[0]
+#   return predict_class
 
 
 st.title('Classify whether given tweet is a disaster or not!!!')
@@ -92,7 +92,7 @@ if option == 'BERT':
 
     if sentence:
         if button:
-            MODEL_PATH = './model-2.bin'
+            MODEL_PATH = '.src//model-2.bin'
 
             MODEL = BERTBaseUncased()
             MODEL.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
