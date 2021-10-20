@@ -15,7 +15,7 @@ from torchtext.legacy import data
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 import pandas as pd
-# from torchtext.vocab import Vectors
+from torchtext.vocab import Vectors
 
 
 
@@ -58,20 +58,19 @@ def sentence_prediction(sentence):
     return outputs[0][0]
 
 
+nlp = spacy.load('en_core_web_sm')
+def bilstm(model, sentence):
+  tokenized = [tok.text for tok in nlp.tokenizer(sentence)]
+  indexed = [TEXT.vocab.stoi[t] for t in tokenized]
+  length = [len(indexed)]
+  tensor = torch.LongTensor(indexed).to(device)
+  tensor = tensor.unsqueeze(1).T
+  length_tensor = torch.LongTensor(length)
+  prediction = model(tensor, length_tensor).squeeze(1)
 
-# # nlp = spacy.load('en_core_web_sm')
-# def bilstm(model, sentence):
-#   tokenized = [tok.text for tok in nlp.tokenizer(sentence)]
-#   indexed = [TEXT.vocab.stoi[t] for t in tokenized]
-#   length = [len(indexed)]
-#   tensor = torch.LongTensor(indexed).to(device)
-#   tensor = tensor.unsqueeze(1).T
-#   length_tensor = torch.LongTensor(length)
-#   prediction = model(tensor, length_tensor).squeeze(1)
-
-#   rounded_preds = torch.round(torch.sigmoid(prediction))
-#   predict_class = rounded_preds.tolist()[0]
-#   return predict_class
+  rounded_preds = torch.round(torch.sigmoid(prediction))
+  predict_class = rounded_preds.tolist()[0]
+  return predict_class
 
 
 st.title('Classify whether given tweet is a disaster or not!!!')
@@ -92,7 +91,7 @@ if option == 'BERT':
 
     if sentence:
         if button:
-            MODEL_PATH = '.src//model-2.bin'
+            MODEL_PATH = './src/model-2.bin'
 
             MODEL = BERTBaseUncased()
             MODEL.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
@@ -113,119 +112,119 @@ if option == 'BERT':
                 st.success('DONE')
 
 
-# elif option == 'BiLSTM':
-#     st.write()
-    # if sentence:
-    #     if button:
+elif option == 'BiLSTM':
+    st.write()
+    if sentence:
+        if button:
 
-    #         train_data = pd.read_csv('../input/train_folds.csv')
-    #         train_df, valid_df = train_test_split(train_data, test_size=0.2)
-    #         nlp = spacy.load('en_core_web_sm')
-    #         TEXT = data.Field(tokenize='spacy', batch_first=True, include_lengths=True)
-    #         LABEL = data.LabelField(dtype = torch.float, batch_first=True)
+            train_data = pd.read_csv('../input/train_folds.csv')
+            train_df, valid_df = train_test_split(train_data, test_size=0.2)
+            nlp = spacy.load('en_core_web_sm')
+            TEXT = data.Field(tokenize='spacy', batch_first=True, include_lengths=True)
+            LABEL = data.LabelField(dtype = torch.float, batch_first=True)
 
-    #         class DataFrameDataset(data.Dataset):
+            class DataFrameDataset(data.Dataset):
 
-    #             def __init__(self, df, fields, is_test=False, **kwargs):
-    #                 examples = []
-    #                 for i, row in df.iterrows():
-    #                     label = row.target if not is_test else None
-    #                     text = row.text
-    #                     examples.append(data.Example.fromlist([text, label], fields))
+                def __init__(self, df, fields, is_test=False, **kwargs):
+                    examples = []
+                    for i, row in df.iterrows():
+                        label = row.target if not is_test else None
+                        text = row.text
+                        examples.append(data.Example.fromlist([text, label], fields))
 
-    #                 super().__init__(examples, fields, **kwargs)
+                    super().__init__(examples, fields, **kwargs)
 
-    #             @staticmethod
-    #             def sort_key(ex):
-    #                 return len(ex.text)
+                @staticmethod
+                def sort_key(ex):
+                    return len(ex.text)
 
-    #             @classmethod
-    #             def splits(cls, fields, train_df, val_df=None, test_df=None, **kwargs):
-    #                 train_data, val_data, test_data = (None, None, None)
-    #                 data_field = fields
+                @classmethod
+                def splits(cls, fields, train_df, val_df=None, test_df=None, **kwargs):
+                    train_data, val_data, test_data = (None, None, None)
+                    data_field = fields
 
-    #                 if train_df is not None:
-    #                     train_data = cls(train_df.copy(), data_field, **kwargs)
-    #                 if val_df is not None:
-    #                     val_data = cls(val_df.copy(), data_field, **kwargs)
-    #                 if test_df is not None:
-    #                     test_data = cls(test_df.copy(), data_field, False, **kwargs)
+                    if train_df is not None:
+                        train_data = cls(train_df.copy(), data_field, **kwargs)
+                    if val_df is not None:
+                        val_data = cls(val_df.copy(), data_field, **kwargs)
+                    if test_df is not None:
+                        test_data = cls(test_df.copy(), data_field, False, **kwargs)
 
-    #                 return tuple(d for d in (train_data, val_data, test_data) if d is not None)
+                    return tuple(d for d in (train_data, val_data, test_data) if d is not None)
 
-    #         fields = [('text',TEXT), ('label',LABEL)]
+            fields = [('text',TEXT), ('label',LABEL)]
 
-    #         train_ds, val_ds = DataFrameDataset.splits(fields, train_df=train_df, val_df=valid_df)
+            train_ds, val_ds = DataFrameDataset.splits(fields, train_df=train_df, val_df=valid_df)
 
-    #         vectors = Vectors(name='./crawl-300d-2M.vec', cache='./')
-    #         MAX_VOCAB_SIZE = 100000
-    #         TEXT.build_vocab(train_ds, 
-    #                         max_size = MAX_VOCAB_SIZE, 
-    #                         vectors = vectors,
-    #                         unk_init = torch.Tensor.zero_)
-    #         LABEL.build_vocab(train_ds)
+            vectors = Vectors(name='./crawl-300d-2M.vec', cache='./')
+            MAX_VOCAB_SIZE = 100000
+            TEXT.build_vocab(train_ds, 
+                            max_size = MAX_VOCAB_SIZE, 
+                            vectors = vectors,
+                            unk_init = torch.Tensor.zero_)
+            LABEL.build_vocab(train_ds)
 
-    #         INPUT_DIM = len(TEXT.vocab)
-    #         EMBEDDING_DIM = 300
-    #         HIDDEN_DIM = 256
-    #         OUTPUT_DIM = 1
-    #         N_LAYERS = 2
-    #         BIDIRECTIONAL = True
-    #         DROPOUT = 0.2
-    #         PAD_IDX = TEXT.vocab.stoi[TEXT.pad_token]
+            INPUT_DIM = len(TEXT.vocab)
+            EMBEDDING_DIM = 300
+            HIDDEN_DIM = 256
+            OUTPUT_DIM = 1
+            N_LAYERS = 2
+            BIDIRECTIONAL = True
+            DROPOUT = 0.2
+            PAD_IDX = TEXT.vocab.stoi[TEXT.pad_token]
 
 
-    #         class LSTM(nn.Module):
-    #             def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, n_layers,
-    #                         bidirectional, dropout, pad_idx):
-    #                 super().__init__()
-    #                 self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
-    #                 self.rnn = nn.LSTM(embedding_dim, hidden_dim, num_layers=n_layers,
-    #                                 bidirectional=bidirectional,
-    #                                 dropout=dropout,
-    #                                 batch_first=True)
-    #                 self.fc1 = nn.Linear(hidden_dim*2, hidden_dim)
-    #                 self.fc2 = nn.Linear(hidden_dim, 1)
-    #                 self.dropout = nn.Dropout(dropout)
+            class LSTM(nn.Module):
+                def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, n_layers,
+                            bidirectional, dropout, pad_idx):
+                    super().__init__()
+                    self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
+                    self.rnn = nn.LSTM(embedding_dim, hidden_dim, num_layers=n_layers,
+                                    bidirectional=bidirectional,
+                                    dropout=dropout,
+                                    batch_first=True)
+                    self.fc1 = nn.Linear(hidden_dim*2, hidden_dim)
+                    self.fc2 = nn.Linear(hidden_dim, 1)
+                    self.dropout = nn.Dropout(dropout)
                 
-    #             def forward(self, text, text_lengths):
-    #                 embedded = self.embedding(text)
-    #                 packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, text_lengths.cpu(), batch_first=True)
-    #                 packed_output, (hidden,cell) = self.rnn(packed_embedded)
+                def forward(self, text, text_lengths):
+                    embedded = self.embedding(text)
+                    packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, text_lengths.cpu(), batch_first=True)
+                    packed_output, (hidden,cell) = self.rnn(packed_embedded)
 
-    #                 hidden = self.dropout(torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim=1))
-    #                 output = self.fc1(hidden)
-    #                 output = self.dropout(self.fc2(output))
-    #                 return output
-
-
-
-    #         model= LSTM(INPUT_DIM, 
-    #                     EMBEDDING_DIM, 
-    #                     HIDDEN_DIM, 
-    #                     OUTPUT_DIM, 
-    #                     N_LAYERS, 
-    #                     BIDIRECTIONAL, 
-    #                     DROPOUT, 
-    #                     PAD_IDX)
+                    hidden = self.dropout(torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim=1))
+                    output = self.fc1(hidden)
+                    output = self.dropout(self.fc2(output))
+                    return output
 
 
-    #         device = torch.device('cpu')
+
+            model= LSTM(INPUT_DIM, 
+                        EMBEDDING_DIM, 
+                        HIDDEN_DIM, 
+                        OUTPUT_DIM, 
+                        N_LAYERS, 
+                        BIDIRECTIONAL, 
+                        DROPOUT, 
+                        PAD_IDX)
 
 
-    #         pretrained_embeddings = TEXT.vocab.vectors
-    #         model.embedding.weight.data.copy_(pretrained_embeddings)
-
-    #         #  to initiaise padded to zeros
-    #         model.embedding.weight.data[PAD_IDX] = torch.zeros(EMBEDDING_DIM)
-    #         with st.spinner(text="PREDICTING.."):
-    #             model = torch.load('./lstmmodel.bin', map_location=torch.device('cpu'))
+            device = torch.device('cpu')
 
 
-    #             output = bilstm(model, sentence)
-    #             if output == 0.0:
-    #                 st.subheader("response: Not a disaster tweet")
-    #             else:
-    #                 st.subheader("response: Disaster tweet")
-    #             st.balloons()
-    #             st.success('DONE')           
+            pretrained_embeddings = TEXT.vocab.vectors
+            model.embedding.weight.data.copy_(pretrained_embeddings)
+
+            #  to initiaise padded to zeros
+            model.embedding.weight.data[PAD_IDX] = torch.zeros(EMBEDDING_DIM)
+            with st.spinner(text="PREDICTING.."):
+                model = torch.load('./lstmmodel.bin', map_location=torch.device('cpu'))
+
+
+                output = bilstm(model, sentence)
+                if output == 0.0:
+                    st.subheader("response: Not a disaster tweet")
+                else:
+                    st.subheader("response: Disaster tweet")
+                st.balloons()
+                st.success('DONE') 
